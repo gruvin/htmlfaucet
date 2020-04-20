@@ -5,6 +5,7 @@ input.address {
     display: inline-block;
 }
 body > div > h1:first-child {
+    color: #2e9ad0;
     background: url(/img/favicon-96.png) no-repeat;
     background-clip:padding-box;
     background-position: 0px 6px;
