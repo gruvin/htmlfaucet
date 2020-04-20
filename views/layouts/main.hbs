@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<!-- {{css}} -->
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Get your FREE HTMLCOIN here! -- HTMLCOIN Fauect</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <link rel="shortcut icon" href="{{app_prefix}}/img/favicon.ico">
+    <link rel="stylesheet" href="{{app_prefix}}/css/styles.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    <script src="https://www.google.com/recaptcha/api.js?render=6LdcKusUAAAAAOGEYFBtrg7tCVJeAAA3RX8EkTVR"></script>
+    <script>
+        grecaptcha.ready(function() {
+            grecaptcha // TODO: move to serverside config.js
+                .execute('6LdcKusUAAAAAOGEYFBtrg7tCVJeAAA3RX8EkTVR', {action: 'homepage'})
+                .then(function(token) {
+                    console.log(token);
+                })
+            ;
+        });
+    </script>
+{{{_sections.jquery}}}
+</head>
+<body class="bg-dark">
+{{#if DEBUG}}
+<div class="container-fluid alert alert-danger h2"><center>!! DEVELOPMENT SITE !!</center></div>
+{{/if}}
+{{{body}}}
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "faucet",
+  "version": "1.0.0",
+  "description": "Delivers free HTMLCOIN using links in emails to track previous outputs, limiting amount and preventing spam.",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "debug": "^4.1.1",
+    "express": "^4.17.1",
+    "express-handlebars": "^4.0.3",
+    "express-handlebars-sections": "^1.0.1",
+    "htmlcoinjs-lib": "^0.1.13",
+    "insight-explorer": "^1.0.10",
+    "morgan": "^1.10.0"
+  }
+}

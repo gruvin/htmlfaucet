@@ -1,0 +1,7 @@
+label { display: block; }
+input.address { 
+    font-family: 'Courier New', Courier, monospace;
+    width: 22em;
+    display: inline-block;
+}
+

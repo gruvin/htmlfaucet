@@ -1,0 +1,54 @@
+<div class="container-sm p-2 bg-dark text-light justify-content-center align-items-center">
+    <h1>HTMLCOIN Faucet</h1>
+    <div class="formContainer">
+        <form class="form-horizontal requestForm" action="{{app_prefix}}/process" method="post">
+            <label for="btnDrip">Wallet address to send {{outputHTML}} HTML</label>
+            <input type="text" class="form-control address" name="address" 
+            placeholder="enter wallet address" value=""/><!-- Tips to author at HeCJjfQcvES1DLXvGg8vSD4NXmUZKec2Eq :p -->
+            <button class="btn btn-primary" type="submit" name="drip" id="btnDrip">SEND</button>
+            <input type="hidden" name="g-recaptcha-response" id="token"/>
+        </div>
+        <div class="notice alert alert-secondary small" style="display:none"></div>
+        </form>
+        <div><span class="badge badge-warning">faucet addres</span> <a href="https://explorer.htmlcoin.com/address/{{faucetAddress}}" 
+                target="_blank"><tt>{{faucetAddress}}</tt></a></div>
+    </div>
+</div>
+{{#section 'jquery'}}
+<script>
+$(document).ready(()  => {
+    $('.requestForm').on('submit', (evt) => {
+        evt.preventDefault();
+        var $me = $(evt.target);
+        var action = $me.attr('action');
+        var $container = $me.closest('.formContainer');
+        grecaptcha.execute('6LdcKusUAAAAAOGEYFBtrg7tCVJeAAA3RX8EkTVR', {action: 'drippage'})
+        .then((token) => {
+            $('#token').val(token);
+            $.ajax({
+                url: action,
+                type: 'POST',
+                dataType: 'json',
+                data: $me.serialize(),
+                success: (data) => {
+                    if (data.success) {
+                        $('.notice').html('');
+                        $container.html(
+                              '<div class="alert alert-secondary overflow-hidden" role="alert">Sent ' + data.amount +' HTML to <tt>' + data.toAddress + '</tt></div>'
+                              + '<div class="alert alert-info overflow-hidden" role="alert">TX ID (click to explore)<br/>'
+                              + '<a class="alert-link" href="https://explorer.htmlcoin.com/tx/' + data.txID + '"><small>' + data.txID + '</small></a></div>'
+                        );
+                        $('.notice').html('Reload this page to sent HTML to someone else.');
+                    } else {
+                        $('.notice').html(data.error).show();
+                    }
+                },
+                error: (err) => {
+                    $('.notice').html("There could be a problem. Perhaps the insider has failed?");
+                }
+            });
+        });
+    });
+});
+</script>
+{{/section}}
