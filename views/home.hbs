@@ -8,7 +8,7 @@
             <button class="btn btn-primary" type="submit" name="drip" id="btnDrip">SEND</button>
             <input type="hidden" name="g-recaptcha-response" id="token"/>
         </div>
-        <div class="notice alert alert-secondary small" style="display:none"></div>
+        <div class="notice container-sm my-2 small" style="display:none"></div>
         </form>
         <div><span class="badge badge-warning">faucet addres</span> <a href="https://explorer.htmlcoin.com/address/{{faucetAddress}}" 
                 target="_blank"><tt>{{faucetAddress}}</tt></a></div>
@@ -19,6 +19,7 @@
 $(document).ready(()  => {
     $('.requestForm').on('submit', (evt) => {
         evt.preventDefault();
+        $('button:submit').prop('disabled', true);
         var $me = $(evt.target);
         var action = $me.attr('action');
         var $container = $me.closest('.formContainer');
@@ -32,7 +33,7 @@ $(document).ready(()  => {
                 data: $me.serialize(),
                 success: (data) => {
                     if (data.success) {
-                        $('.notice').html('');
+                        $('.notice').html('').hide();
                         $container.html(
                               '<div class="alert alert-secondary overflow-hidden" role="alert">Sent ' + data.amount +' HTML to <tt>' + data.toAddress + '</tt></div>'
                               + '<div class="alert alert-info overflow-hidden" role="alert">TX ID (click to explore)<br/>'
@@ -40,7 +41,8 @@ $(document).ready(()  => {
                         );
                         $('.notice').html('Reload this page to sent HTML to someone else.');
                     } else {
-                        $('.notice').html(data.error).show();
+                        $('.notice').html(data.error + ((data.extra) ? '<br/><code>'+data.extra+'</code>' : '')).show();
+                        $('button:submit').prop('disabled', false);
                     }
                 },
                 error: (err) => {

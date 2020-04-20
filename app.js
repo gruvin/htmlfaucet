@@ -79,10 +79,10 @@ app.post(app_prefix+'/process', (req, res) => {
         .then(() => {
             // check for valid address
             try {
-                if (toAddress[0] != 'H') toAddress = ""; // invalidate
-                address.fromBase58Check(toAddress);
+                if (toAddress[0] == 'H') address.fromBase58Check(toAddress);
+                else throw new Error();
             } catch(e) {
-                return Promise.reject(`Not a valid HTMLCOIN address: ${toAddress}`);
+                throw new Error(`Not a valid HTMLCOIN address: ${toAddress}`);
             }
             
             insight
@@ -131,10 +131,6 @@ app.post(app_prefix+'/process', (req, res) => {
                     // broadcast the transaction
                     insight
                         .broadcastRawTransaction(rawTx)
-                        .catch((err) => { 
-                            debug('TX transmission failed', err);
-                            return Promise.reject('<code>Transaction relay failed [explorer.htmlcoin.com].\n'+err+'</code></tt>');
-                        })
                         .then((response) => { 
                             debug("[insight]/tx/send response:", response.txid);
                             res.json({ 
@@ -144,18 +140,19 @@ app.post(app_prefix+'/process', (req, res) => {
                                 txID: response.txid
                             });
                         })
-                        .catch((err) => {
-                            res.json({ error: err });
+                        .catch((err) => { 
+                            debug('TX transmission failed: %O', err);
+                            res.json({ error: 'Transaction broadcast failed.', extra: err.toString() });
                         });
                     ; // insight (2/2)
                 })
                 .catch((err) => {
-                    res.json({ error: err });
+                    res.json({ error: err.toString() });
                 });
             ; // insight (1/2)
         })
         .catch((err) => {
-            res.json({ error: err });
+            res.json({ error: err.toString() });
         });
     ; // recaptcha
 });
