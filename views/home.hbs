@@ -1,22 +1,28 @@
 <div class="container-sm p-2 bg-dark text-light justify-content-center align-items-center">
     <h1>HTMLCOIN Faucet</h1>
-    <div class="formContainer">
+    <div class="formContainer" style="max-width:520px">
         <form class="form-horizontal requestForm" action="{{app_prefix}}/process" method="post">
             <label for="btnDrip">Wallet address to send {{outputHTML}} HTML</label>
-            <input type="text" class="form-control address" name="address" 
-            placeholder="enter wallet address" value=""/><!-- Tips to author at HeCJjfQcvES1DLXvGg8vSD4NXmUZKec2Eq :p -->
-            <button class="btn btn-primary" type="submit" name="drip" id="btnDrip">SEND</button>
+            <div class="input-group">
+                <input type="text" class="form-control address" name="address" 
+                placeholder="enter wallet address" value=""/><!-- Tips to author at HeCJjfQcvES1DLXvGg8vSD4NXmUZKec2Eq :p -->
+                <div class="input-group-append">
+                   <button class="btn btn-primary" type="submit" name="drip" id="btnDrip">SEND</button>
+                </div>
+            </div>
             <input type="hidden" name="g-recaptcha-response" id="token"/>
         </div>
         <div class="notice container-sm my-2 small" style="display:none"></div>
-        </form>
-        <div><span class="badge badge-warning">faucet addres</span> <a href="https://explorer.htmlcoin.com/address/{{faucetAddress}}" 
+    </form>
+    <div class="my-3"><span class="badge badge-warning">faucet addres</span> <a href="https://explorer.htmlcoin.com/address/{{faucetAddress}}" 
                 target="_blank"><tt>{{faucetAddress}}</tt></a></div>
     </div>
 </div>
 {{#section 'jquery'}}
 <script>
 $(document).ready(()  => {
+
+    $('body > div > h1:first-child').css('background-image', 'url({{app_prefix}}/img/favicon-96.png)'); <!-- because cPanel mod_passenger sux -->
     $('.requestForm').on('submit', (evt) => {
         evt.preventDefault();
         $('button:submit').prop('disabled', true);
