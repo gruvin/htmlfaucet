@@ -7,8 +7,8 @@ const bodyParser = require('body-parser');
 const http = require('http');
 const htmlcoin = require('htmlcoinjs-lib');
 const address = require('bitcoinjs-lib').address;
-const Insight = require('insight-explorer').Insight;
-const insight = new Insight('https://explorer.htmlcoin.com/api');
+const InsightExplorer = require('insight-explorer').Insight;
+const insight = new InsightExplorer('https://explorer.htmlcoin.com/api', false);
 const axios = require('axios');
 const config = require('./lib/config.js');
 const fs = require('fs');
@@ -129,22 +129,52 @@ app.post(app_prefix+'/process', (req, res) => {
                     debug("Raw Transaction: %s", rawTx);
 
                     // broadcast the transaction
-                    insight
-                        .broadcastRawTransaction(rawTx)
-                        .then((response) => { 
-                            debug("[insight]/tx/send response:", response.txid);
+                    if (config.broadcastVia && config.broadcastVia == 'rpc') {
+                        axios({
+                            baseURL: 'http://localhost:14889',
+                            method: 'post',
+                            auth: {
+                                username: config.rpcUser,
+                                password: config.rpcPass
+                            },
+                            data: {
+                                jsonrpc: '1.0', 
+                                id: 'htmlfaucet',
+                                method: 'sendrawtransaction', 
+                                params: [ rawTx ]
+                            }
+                        }).then((response) => {
+                            debug("[rpc]sendrawtransaction response: %O", response.data);
                             res.json({ 
                                 success: true,
                                 toAddress: toAddress,
                                 amount: config.outputHTML,
-                                txID: response.txid
+                                txID: response.data.result
                             });
-                        })
-                        .catch((err) => { 
-                            debug('TX transmission failed: %O', err);
-                            res.json({ error: 'Transaction broadcast failed.', extra: err.toString() });
+                        }).catch((err) => {
+                            debug('TX transmission failed: %O', err.response);
+                            res.json({ error: 'Transaction broadcast failed.', 
+                                extra: err.response.data.error.message });
                         });
-                    ; // insight (2/2)
+
+                    } else {
+                        insight
+                            .broadcastRawTransaction(rawTx)
+                            .then((response) => { 
+                                debug("[insight]/tx/send response:", response.txid);
+                                res.json({ 
+                                    success: true,
+                                    toAddress: toAddress,
+                                    amount: config.outputHTML,
+                                    txID: response.txid
+                                });
+                            })
+                            .catch((err) => { 
+                                debug('TX transmission failed: %O', err);
+                                res.json({ error: 'Transaction broadcast failed.', extra: err.toString() });
+                            });
+                        ; // insight (2/2)
+                    }
                 })
                 .catch((err) => {
                     res.json({ error: err.toString() });
