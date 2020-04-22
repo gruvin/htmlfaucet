@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const exphbs  = require('express-handlebars');
 const exphbs_sections = require('express-handlebars-sections');
@@ -5,17 +7,9 @@ const logger = require('morgan');
 const debug = require('debug')('app');
 const bodyParser = require('body-parser');
 const http = require('http');
-const htmlcoin = require('htmlcoinjs-lib');
-const address = require('bitcoinjs-lib').address;
-const InsightExplorer = require('insight-explorer').Insight;
-const insight = new InsightExplorer('https://explorer.htmlcoin.com/api', false);
-const axios = require('axios');
+const rfs = require('rotating-file-stream');
 const config = require('./lib/config.js');
-const fs = require('fs');
-const path = require('path');
-const recaptcha = require('./lib/recaptcha.js');
-
-const keyPair = new htmlcoin.ECPair.fromWIF(config.faucetPrivateKey, config.network);
+const util = require('./lib/util.js');
 
 // Follows verily an sickening, untoward comotion of a nuisence, as concerns cPanel and mod_passenger (ick)
 let app_prefix = '';
@@ -43,7 +37,12 @@ if (!process.env.DEBUG && fs.existsSync(cpanelDir) && fs.lstatSync(cpanelDir).is
 
 var app = express();
 
-app.use(logger("short"));
+var accessLogStream = rfs.createStream('access.log', {
+    interval: '7d',
+    path: path.join(__dirname, 'log')
+});
+app.use(logger('combined', { stream: accessLogStream }));
+
 app.use(bodyParser.urlencoded({extended: false}));
 
 var hbs = exphbs.create({ 
@@ -51,7 +50,7 @@ var hbs = exphbs.create({
     helpers: {
         app_prefix: () => { return app_prefix; },
         outputHTML: config.outputHTML.toFixed(1),
-        faucetAddress: new htmlcoin.ECPair.fromWIF(config.faucetPrivateKey, config.network).getAddress()
+        faucetAddress: config.keyPair.getAddress()
     }
 });
 exphbs_sections(hbs);
@@ -68,125 +67,40 @@ app.get(app_prefix+'/', (req, res) => {
 });
 
 app.post(app_prefix+'/process', (req, res) => {
-    let toAddress = req.body.address || "";
-    let transactionID ="";
-
-    let token = req.body['g-recaptcha-response'];
-    let remoteip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    recaptcha
-        .verify(token, remoteip)
-        .then(() => {
-            // check for valid address
-            try {
-                if (toAddress[0] == 'H') address.fromBase58Check(toAddress);
-                else throw new Error();
-            } catch(e) {
-                throw new Error(`Not a valid HTMLCOIN address: ${toAddress}`);
-            }
-            
-            insight
-                .getAddressUtxo(keyPair.getAddress())
-
-                // translate data to format needed by buildPubKeyHashTransaction(), below
-                .then((utxos) => { 
-                    // TODO: refactor this into ./lib/util.js
-                    var utxoList = utxos.map(item => {
-                        return {
-                            address: item.address,
-                            txid: item.txid,
-                            confirmations: item.confirmations,
-                            isStake: item.isStake,
-                            amount: item.amount,
-                            value: item.satoshis,
-                            hash: item.txid,
-                            pos: item.vout
-                        }
-                    });
-
-                    return new Promise((resolve, reject) => {
-                        let rawTx = "";
-                        try {
-                            rawTx = htmlcoin.utils.buildPubKeyHashTransaction(keyPair, toAddress, config.outputHTML, config.relayFee, utxoList);
-                            resolve(rawTx);
-                        } catch(e) {
-                            let eo = { 
-                                keypair: '[private]', 
-                                address: toAddress, 
-                                amount: config.outputHTML, 
-                                relayFee: config.relayFee,
-                                utxoList: utxoList
-                            };
-                            debug('Transaction build failed: %O', eo);
-                            reject(':( Transaction build failed. Error has been logged.');
-                        }
-                    });
-
-                })
-                .then((rawTx) => {
-                    // TODO: refactor this into ./lib/util.js
-                    
-                    debug("Raw Transaction: %s", rawTx);
-
-                    // broadcast the transaction
-                    if (config.broadcastVia && config.broadcastVia == 'rpc') {
-                        axios({
-                            baseURL: 'http://localhost:14889',
-                            method: 'post',
-                            auth: {
-                                username: config.rpcUser,
-                                password: config.rpcPass
-                            },
-                            data: {
-                                jsonrpc: '1.0', 
-                                id: 'htmlfaucet',
-                                method: 'sendrawtransaction', 
-                                params: [ rawTx ]
-                            }
-                        }).then((response) => {
-                            debug("[rpc]sendrawtransaction response: %O", response.data);
-                            res.json({ 
-                                success: true,
-                                toAddress: toAddress,
-                                amount: config.outputHTML,
-                                txID: response.data.result
-                            });
-                        }).catch((err) => {
-                            debug('TX transmission failed: %O', err.response);
-                            res.json({ error: 'Transaction broadcast failed.', 
-                                extra: err.response.data.error.message });
-                        });
-
-                    } else {
-                        insight
-                            .broadcastRawTransaction(rawTx)
-                            .then((response) => { 
-                                debug("[insight]/tx/send response:", response.txid);
-                                res.json({ 
-                                    success: true,
-                                    toAddress: toAddress,
-                                    amount: config.outputHTML,
-                                    txID: response.txid
-                                });
-                            })
-                            .catch((err) => { 
-                                debug('TX transmission failed: %O', err);
-                                res.json({ error: 'Transaction broadcast failed.', extra: err.toString() });
-                            });
-                        ; // insight (2/2)
-                    }
-                })
-                .catch((err) => {
-                    res.json({ error: err.toString() });
-                });
-            ; // insight (1/2)
+    let _databaseID = null;
+    let _txID = '';
+    util.reCAPTCHA(req)
+    .then(() => util.checkValidAddress(req.body.address))
+    .then(() => util.dbTimeCheck(req.body.address))
+    .then((databaseID) => {
+        _databaseID = databaseID;
+        return util.buildDripTransaction(req.body.address, config.outputHTML, config.relayFee);
+    })
+    .then((rawTransaction) => util.broadcastTransaction(rawTransaction))
+    .then((txid) => {
+        _txID = txid;
+        return util.dbRecordTime(_databaseID, req.body.address, txid);
+    })
+    .then(() => {
+        return new Promise((resolve,reject) => {
+            res.json({
+                success: true,
+                toAddress: req.body.address,
+                amount: config.outputHTML,
+                txID: _txID
+            })
+            resolve();
         })
-        .catch((err) => {
-            res.json({ error: err.toString() });
-        });
-    ; // recaptcha
+    })
+    .catch((err) => {
+        debug('/process catch() err: %O', err);
+        if (typeof err.error !== 'undefined')
+            res.json({ error: err.error, reason: err.reason });
+        else
+            res.json({ error: err });
+    })
 });
 
 app.listen(server_port, server_hostname, () => {
-    console.log(`Server running at http://${server_hostname}:${server_port}/`);
+    console.info(`Server running at http://${server_hostname}:${server_port}/`);
 });

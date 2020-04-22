@@ -22,10 +22,11 @@
 <script>
 $(document).ready(()  => {
 
-    $('body > div > h1:first-child').css('background-image', 'url({{app_prefix}}/img/favicon-96.png)'); <!-- because cPanel mod_passenger sux -->
+    $('body > div > h1:first-child').css('background-image', 'url({{app_prefix}}/img/favicon-96.png)'); // because cPanel mod_passenger sux
     $('.requestForm').on('submit', (evt) => {
         evt.preventDefault();
         $('button:submit').prop('disabled', true);
+        $('.notice').html('').hide();
         var $me = $(evt.target);
         var action = $me.attr('action');
         var $container = $me.closest('.formContainer');
@@ -39,7 +40,6 @@ $(document).ready(()  => {
                 data: $me.serialize(),
                 success: (data) => {
                     if (data.success) {
-                        $('.notice').html('').hide();
                         $container.html(
                               '<div class="alert alert-secondary overflow-hidden" role="alert">Sent ' + data.amount +' HTML to <tt>' + data.toAddress + '</tt></div>'
                               + '<div class="alert alert-info overflow-hidden" role="alert">TX ID (click to explore)<br/>'
@@ -47,7 +47,7 @@ $(document).ready(()  => {
                         );
                         $('.notice').html('Reload this page to sent HTML to someone else.');
                     } else {
-                        $('.notice').html(data.error + ((data.extra) ? '<br/><code>'+data.extra+'</code>' : '')).show();
+                        $('.notice').html(data.error + ((data.reason) ? '<br/><code>'+data.reason+'</code>' : '')).show();
                         $('button:submit').prop('disabled', false);
                     }
                 },

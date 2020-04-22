@@ -15,12 +15,15 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
+    "dateformat": "^3.0.3",
     "debug": "^4.1.1",
     "express": "^4.17.1",
     "express-handlebars": "^4.0.3",
     "express-handlebars-sections": "^1.0.1",
     "htmlcoinjs-lib": "^0.1.13",
     "insight-explorer": "^1.0.10",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "rotating-file-stream": "^2.0.2",
+    "sqlite3": "^4.1.1"
   }
 }

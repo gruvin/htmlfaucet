@@ -236,3 +236,6 @@ dist
 # cPanel mod_passenger specific
 tmp/
 
+# project specific
+db.sqlite
+
