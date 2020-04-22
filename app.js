@@ -70,11 +70,11 @@ app.post(app_prefix+'/process', (req, res) => {
     let _databaseID = null;
     let _txID = '';
     util.reCAPTCHA(req)
-    .then(() => util.checkValidAddress(req.body.address))
+    .then(() => util.checkValidAddress(req.body.address)) // Promise abstracted synchronous but may become async some day
     .then(() => util.dbTimeCheck(req.body.address))
     .then((databaseID) => {
         _databaseID = databaseID;
-        return util.buildDripTransaction(req.body.address, config.outputHTML, config.relayFee);
+        return util.buildDripTransaction(req.body.address, config.outputHTML, config.relayFee); // contains async xtxo fetch
     })
     .then((rawTransaction) => util.broadcastTransaction(rawTransaction))
     .then((txid) => {
@@ -82,14 +82,11 @@ app.post(app_prefix+'/process', (req, res) => {
         return util.dbRecordTime(_databaseID, req.body.address, txid);
     })
     .then(() => {
-        return new Promise((resolve,reject) => {
-            res.json({
-                success: true,
-                toAddress: req.body.address,
-                amount: config.outputHTML,
-                txID: _txID
-            })
-            resolve();
+        res.json({
+            success: true,
+            toAddress: req.body.address,
+            amount: config.outputHTML,
+            txID: _txID
         })
     })
     .catch((err) => {
