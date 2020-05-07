@@ -1,7 +1,7 @@
 <div class="container-sm p-2 bg-dark text-light justify-content-center align-items-center">
     <h1>HTMLCOIN faucet</h1>
     <div class="formContainer" style="max-width:520px">
-        <form class="form-horizontal requestForm" action="{{app_prefix}}/process" method="post">
+        <form class="form-horizontal requestForm" action="{{app_prefix}}/process" method="post" onSubmit="return false">
             <label for="btnDrip">Wallet address to send {{outputHTML}} HTML</label>
             <div class="input-group">
                 <input type="text" class="form-control address" name="address" 
@@ -21,7 +21,12 @@
 {{#section 'jquery'}}
 <script>
 $(document).ready(()  => {
-
+    /*function wait(ms) {
+        return new Promise((resolve) => {
+            setTimeout(resolve(), ms)
+        }
+    }
+*/
     $('body > div > h1:first-child').css('background-image', 'url({{app_prefix}}/img/favicon-96.png)'); // because cPanel mod_passenger sux
     $('.requestForm').on('submit', (evt) => {
         evt.preventDefault();
@@ -30,11 +35,20 @@ $(document).ready(()  => {
         var $me = $(evt.target);
         var action = $me.attr('action');
         var $container = $me.closest('.formContainer');
+        var progress = 20;
         grecaptcha.execute('6LdcKusUAAAAAOGEYFBtrg7tCVJeAAA3RX8EkTVR', {action: 'drippage'})
         .then((token) => {
             $('#token').val(token);
-            $('.notice').html('Processing ').show();
-            var dotter = setInterval(() => $('.notice').append('.'), 250)
+            $('.notice').html('<div class="progress"><div class="progress-bar bg-info" role="progressbar" aria-valuenow="'+progress+'" />').show();
+            var dotter = setInterval(() => { 
+                    progress += 5;
+                    if (progress < 100) {
+                        $('.progress-bar').css( "width", progress + "%" ).attr('aria-valuenow', progress);
+                    } else {
+                        clearInterval(dotter);
+                        $('.progress-bar').addClass('progress-bar-striped progress-bar-animated');
+                    }
+            }, 100)
             $.ajax({
                 url: action,
                 type: 'POST',
@@ -65,7 +79,7 @@ $(document).ready(()  => {
                             break;
 
                         case 'timeout':
-                            $('.notice').append(' TIMEOUT. Try again?').show();
+                            $('.notice').html('Communication timeout. Try again?').show();
                             $('button:submit').prop('disabled', false);
                             break;
                     }

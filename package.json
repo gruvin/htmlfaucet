@@ -4,7 +4,7 @@
   "description": "Delivers free HTMLCOIN using links in emails to track previous outputs, limiting amount and preventing spam.",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon app.js",
+    "start": "nodemon --ext 'js,hbs,json' app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
