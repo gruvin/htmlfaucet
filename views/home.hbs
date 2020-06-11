@@ -37,7 +37,7 @@ $(document).ready(()  => {
         var $container = $me.closest('.formContainer');
         var progress = 20;
         grecaptcha.execute('6LdcKusUAAAAAOGEYFBtrg7tCVJeAAA3RX8EkTVR', {action: 'drippage'})
-        .then((token) => {
+        .then(token => {
             $('#token').val(token);
             $('.notice').html('<div class="progress"><div class="progress-bar bg-info" role="progressbar" aria-valuenow="'+progress+'" />').show();
             var dotter = setInterval(() => { 

@@ -67,29 +67,19 @@ app.get(app_prefix+'/', (req, res) => {
 });
 
 app.post(app_prefix+'/process', (req, res) => {
-    let _databaseID = null;
-    let _txID = '';
-    util.reCAPTCHA(req)
-    .then(() => util.checkValidAddress(req.body.address)) // Promise abstracted synchronous but may become async some day
-    .then(() => util.dbTimeCheck(req.body.address))
-    .then((databaseID) => {
-        _databaseID = databaseID;
-        return util.buildDripTransaction(req.body.address, config.outputHTML, config.relayFee); // contains async xtxo fetch
-    })
-    .then((rawTransaction) => util.broadcastTransaction(rawTransaction))
-    .then((txid) => {
-        _txID = txid;
-        return util.dbRecordTime(_databaseID, req.body.address, txid);
-    })
-    .then(() => {
+    util.reCAPTCHA(req)              // resolves req.body.address
+    .then(util.checkValidAddress)    // takes address; resolves valid HTMLCOIN address
+    .then(util.buildDripTransaction) // takes address; resolves rawTransaction
+    .then(util.broadcastTransaction) // takes address; resolve broadcast result array object
+    .then(txID => {
         res.json({
             success: true,
             toAddress: req.body.address,
             amount: config.outputHTML,
-            txID: _txID
+            txID
         })
     })
-    .catch((err) => {
+    .catch(err => {
         debug('/process catch() err: %O', err);
         if (typeof err.error !== 'undefined')
             res.json({ error: err.error, reason: err.reason });
